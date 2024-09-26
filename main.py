@@ -17,7 +17,7 @@ polyscope.init()
 
 def LoadMesh():                                             #Load Mesh and decrease number of faces
     Dateiname = input("Geben sie den Namen der Datei ein:/Input Filename:")
-    MeshSet.load_new_mesh(Dateiname)
+    MeshSet.load_new_mesh("input/"+Dateiname)
     MeshSet.meshing_decimation_clustering(threshold=Percentage(0.75))
     MeshSet.compute_matrix_from_scaling_or_normalization(scalecenter=1, uniformflag=1, axisx=skalierungsfaktor)
     # MeshSet.meshing_decimation_quadric_edge_collapse(targetfacenum=10000)
@@ -69,7 +69,7 @@ def MoveSelectedFacesToAnotherLayer():                      #For editing certain
 
 
 def SaveCurrentMesh():                                      #For creating a printable file format
-    MeshSet.save_current_mesh(file_name="Output.stl", save_textures=True)
+    MeshSet.save_current_mesh(file_name="output/Output.stl", save_textures=True)
     return
 
 

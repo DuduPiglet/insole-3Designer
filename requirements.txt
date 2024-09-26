@@ -1,0 +1,3 @@
+numpy==1.24.4
+polyscope==2.3.0
+pymeshlab==2022.2

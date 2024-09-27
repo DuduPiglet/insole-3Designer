@@ -4,6 +4,7 @@ import src.user_prompt as upr
 import src.file_hdl as fhdl
 from datetime import datetime
 import conf.flags as flg
+import json
 
 # Disclaimer: I had no Idea what I was doing. I just coded this script to not have to do it all by hand in Meshlab
 # Don't expect anything fancy really, but it "works" somehow. If it makes sense in a anatomical way is up to the debate!
@@ -15,7 +16,7 @@ import polyscope  # 3D GUI         or import "as MeshSet"? I have no Idea.
 # Implements execurion arguments.
 args = targs.menu()
 
-inputfile_list = fhdl.fetch_files(args['i'])
+inputfile_list = fhdl.fetch_inputfiles(args['i'])
 if (inputfile_list == None):
     print(text.texts['warn_no_inputfile'][args['l']] % args['i'])
     exit(1)
@@ -31,16 +32,11 @@ else:
 output_file = upr.prompt_outputfile_name(lang=args['l'], default_output_filename=default_output_file)
 print(text.texts['end_of_work'][args['l']] % (args['o'], output_file) + '\n')
 
-if (foot_choise == 'l'):
-    angle1 = float(-35)
-    angle2 = float(-7.5)
-    angle21 = float(7.5) # 0 for torsion cut, 7.5 normal.
-    angle3 = float(17.5)
-elif foot_choise == 'r':
-    angle1 = float(-35)
-    angle2 = float(7.5)
-    angle21 = float(-7.5) # 0 for torsion cut, -7.5 normal.
-    angle3 = float(-17.5)
+footangle_data = fhdl.fetch_foot_angles('conf/foot_angles.json')
+footangle_1  = footangle_data[foot_choise]['1' ]
+footangle_2  = footangle_data[foot_choise]['2' ]
+footangle_21 = footangle_data[foot_choise]['21'] # 0 for torsion cut, 7.5 normal.
+footangle_3  = footangle_data[foot_choise]['3' ]
 
 MeshSet = pymeshlab.MeshSet()     # Class containing all meshes.
 Percentage = pymeshlab.Percentage # Something for percentage values at some point (no idea).
@@ -99,21 +95,6 @@ def SaveCurrentMesh():                                      # For creating a pri
     return
 # End of declaration of the functions (not all are being used I guess).
 
-
-# Begin inputs.
-if (foot_choise == 'l'):
-    angle1 = float(-35)
-    angle2 = float(-7.5)
-    angle21 = float(7.5) # 0 für Torsionsschnitt, 7.5 normal
-    angle3 = float(17.5)
-elif foot_choise == 'r':
-    angle1 = float(-35)
-    angle2 = float(7.5)
-    angle21 = float(-7.5) # 0 für Torsionsschnitt, -7.5 normal
-    angle3 = float(-17.5)
-# End of inputs.
-
-
 # Calculating heights for the plane construct.
 x70 = (70 / 270) * footlength
 x60 = (60 / 270) * footlength
@@ -159,18 +140,18 @@ MeshSet.generate_copy_of_current_mesh() # 6
 
 MeshSet.set_current_mesh(2)
 MeshSet.compute_matrix_from_translation(traslmethod=0, axisz=-x10)
-MeshSet.compute_matrix_from_rotation(rotaxis=0, rotcenter=1, angle=angle1)  # Front.
-MeshSet.compute_matrix_from_rotation(rotaxis=1, rotcenter=1, angle=angle2)  # Front tilt.
+MeshSet.compute_matrix_from_rotation(rotaxis=0, rotcenter=1, angle=footangle_1)  # Front.
+MeshSet.compute_matrix_from_rotation(rotaxis=1, rotcenter=1, angle=footangle_2)  # Front tilt.
 
 MeshSet.set_current_mesh(6)
 MeshSet.compute_matrix_from_translation(traslmethod=0, axisz=-x10)
-MeshSet.compute_matrix_from_rotation(rotaxis=0, rotcenter=1, angle=angle1)  # Second front.
-MeshSet.compute_matrix_from_rotation(rotaxis=1, rotcenter=1, angle=angle21) # Second front tilt.
+MeshSet.compute_matrix_from_rotation(rotaxis=0, rotcenter=1, angle=footangle_1)  # Second front.
+MeshSet.compute_matrix_from_rotation(rotaxis=1, rotcenter=1, angle=footangle_21) # Second front tilt.
 
 MeshSet.set_current_mesh(3)
 MeshSet.compute_matrix_from_translation(traslmethod=0, axisz=-0)
 MeshSet.compute_matrix_from_rotation(rotaxis=0, rotcenter=1, angle=-3.5)    # Arc tilt.
-MeshSet.compute_matrix_from_rotation(rotaxis=1, rotcenter=1, angle=angle3)  # Arc.
+MeshSet.compute_matrix_from_rotation(rotaxis=1, rotcenter=1, angle=footangle_3)  # Arc.
 
 MeshSet.set_current_mesh(4)
 MeshSet.compute_matrix_from_translation(traslmethod=0, axisz=-0)            # Base plane.

@@ -38,6 +38,16 @@ footangle_2  = footangle_data[foot_choise]['2' ]
 footangle_21 = footangle_data[foot_choise]['21'] # 0 for torsion cut, 7.5 normal.
 footangle_3  = footangle_data[foot_choise]['3' ]
 
+# Calculating heights for the plane construct.
+x70 = (70 / 270) * footlength
+x60 = (60 / 270) * footlength
+x50 = (50 / 270) * footlength
+x40 = (40 / 270) * footlength # Some values, bullshit I guess.
+x30 = (30 / 270) * footlength # This was for maintaining correct relative distances of the planes.
+x20 = (20 / 270) * footlength
+x10 = (10 / 270) * footlength # Only x10 is being used.
+# End of calculations.
+
 MeshSet = pymeshlab.MeshSet()     # Class containing all meshes.
 Percentage = pymeshlab.Percentage # Something for percentage values at some point (no idea).
 polyscope.set_up_dir("neg_z_up")  # Set "upwards" direction in polyscope.
@@ -94,16 +104,6 @@ def SaveCurrentMesh():                                      # For creating a pri
     MeshSet.save_current_mesh(file_name="%s/%s" % (args['o'], output_file), save_textures=True)
     return
 # End of declaration of the functions (not all are being used I guess).
-
-# Calculating heights for the plane construct.
-x70 = (70 / 270) * footlength
-x60 = (60 / 270) * footlength
-x50 = (50 / 270) * footlength
-x40 = (40 / 270) * footlength # Some values, bullshit I guess.
-x30 = (30 / 270) * footlength # This was for maintaining correct relative distances of the planes.
-x20 = (20 / 270) * footlength
-x10 = (10 / 270) * footlength # Only x10 is being used.
-# End of calculations.
 
 LoadMesh()
 ShowInPolyscope()

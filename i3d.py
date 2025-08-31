@@ -20,6 +20,10 @@ inputfile_list = fhdl.fetch_inputfiles(args['i'])
 if (inputfile_list == None):
     print(text.texts['warn_no_inputfile'][args['l']] % args['i'])
     exit(1)
+#input_file = 'right_foot_sample.ply'#upr.prompt_inputfile(inputfile_list, lang=args['l'])
+#footlength = 280#upr.prompt_footlength(lang=args['l'])
+#footlength_ml = 14.006#upr.prompt_footlength_ml(lang=args['l'])
+#foot_choise = 'r'#upr.prompt_foot_choise(lang=args['l'])
 input_file = upr.prompt_inputfile(inputfile_list, lang=args['l'])
 footlength = upr.prompt_footlength(lang=args['l'])
 footlength_ml = upr.prompt_footlength_ml(lang=args['l'])
@@ -29,7 +33,7 @@ if (flg.APPEND_DATETIME == 1):
     default_output_file = "%s_%s.stl" % (''.join(input_file.split('.')[0:-1]), datetime.now().strftime("%Y%m%d_%H%M%S"))
 else:
     default_output_file = "%s.stl" % (''.join(input_file.split('.')[0:-1]))
-output_file = upr.prompt_outputfile_name(lang=args['l'], default_output_filename=default_output_file)
+output_file = 'output.stl'#upr.prompt_outputfile_name(lang=args['l'], default_output_filename=default_output_file)
 print(text.texts['end_of_work'][args['l']] % (args['o'], output_file) + '\n')
 
 footangle_data = fhdl.fetch_foot_angles('conf/foot_angles.json')
@@ -50,14 +54,19 @@ x10 = (10 / 270) * footlength # Only x10 is being used.
 
 MeshSet = pymeshlab.MeshSet()     # Class containing all meshes.
 Percentage = pymeshlab.Percentage # Something for percentage values at some point (no idea).
-polyscope.set_up_dir("neg_z_up")  # Set "upwards" direction in polyscope.
+polyscope.set_up_dir('neg_z_up')  # Set "upwards" direction in polyscope.
+polyscope.set_front_dir('x_front')
 polyscope.init()
 
 # Begin declaration of functions.
 def LoadMesh():                                             # Load Mesh and decrease number of faces.
   MeshSet.load_new_mesh("%s/%s" % (args['i'], input_file))
-  MeshSet.meshing_decimation_clustering(threshold=Percentage(0.75))
-  MeshSet.compute_matrix_from_scaling_or_normalization(scalecenter=1, uniformflag=1, axisx=scale_factor)
+  MeshSet.meshing_decimation_clustering(threshold=Percentage(0.75)) # This value is used to decimate the mesh and speed up the processing. The higher the more it decimates.
+  MeshSet.compute_matrix_from_scaling_or_normalization(
+      scalecenter=1,        # Set the center of the piece is the center of the scaling? [0:origin, 1:barycenter, 2:custom]
+      uniformflag=1,        # Use the same scale por all axis (the X axis value is used).
+      axisx=scale_factor    # Scale factor.
+    )
   # MeshSet.meshing_decimation_quadric_edge_collapse(targetfacenum=10000)
   return
 
@@ -84,8 +93,8 @@ def RotateToFitOnXYPlane():                                 # Rotate the Scan of
     return
 
 def CreatePlaneOnBorder():                                  # Creates a plane that covers the whole scan. You will see why.
-    MeshSet.compute_selection_from_mesh_border()
-    MeshSet.generate_plane_fitting_to_selection(extent=1, subdiv=60, orientation=1)
+    MeshSet.compute_selection_from_mesh_border() # Select the bordets of the mesh.
+    MeshSet.generate_plane_fitting_to_selection(extent=1, subdiv=60, orientation=1) # Create a plane that fits the selection.
     return
 
 def ColorizeMesh0():                                        # Colorizes the mesh according to the euclidean distance to the plane.
@@ -93,7 +102,12 @@ def ColorizeMesh0():                                        # Colorizes the mesh
     return
 
 def SelectOverhang():                                       # Selects the unnecesary part of the scan to delete it afterwards.
-    MeshSet.compute_selection_by_color_per_face(percentrh=1, percentgs=0.2, percentbv=1, colorspace=0)
+    MeshSet.compute_selection_by_color_per_face(
+        percentrh=1,    # Variation from Red or Hue.
+        percentgs=0.2,  # Variation from Green or Saturation.
+        percentbv=1,    # Variation from Blue or Value
+        colorspace=0
+    )
     return
 
 def MoveSelectedFacesToAnotherLayer():                      # For editing certain parts of the mesh.
@@ -109,7 +123,6 @@ LoadMesh()
 ShowInPolyscope()
 
 # Begin cutting.
-MeshSet.set_current_mesh(0)
 CreatePlaneOnBorder()  # Remove imprint from overhang.
 ColorizeMesh0()
 MeshSet.set_current_mesh(1)
@@ -133,6 +146,7 @@ MeshSet.set_current_mesh(0)
 CreatePlaneOnBorder()
 
 MeshSet.set_current_mesh(2)
+MeshSet.set_mesh_name(newname="Mesh_2")
 MeshSet.generate_copy_of_current_mesh() # 3
 MeshSet.generate_copy_of_current_mesh() # 4
 MeshSet.generate_copy_of_current_mesh() # 5
@@ -144,20 +158,24 @@ MeshSet.compute_matrix_from_rotation(rotaxis=0, rotcenter=1, angle=footangle_1) 
 MeshSet.compute_matrix_from_rotation(rotaxis=1, rotcenter=1, angle=footangle_2)  # Front tilt.
 
 MeshSet.set_current_mesh(6)
+MeshSet.set_mesh_name(newname="Mesh_6")
 MeshSet.compute_matrix_from_translation(traslmethod=0, axisz=-x10)
 MeshSet.compute_matrix_from_rotation(rotaxis=0, rotcenter=1, angle=footangle_1)  # Second front.
 MeshSet.compute_matrix_from_rotation(rotaxis=1, rotcenter=1, angle=footangle_21) # Second front tilt.
 
 MeshSet.set_current_mesh(3)
+MeshSet.set_mesh_name(newname="Mesh_3")
 MeshSet.compute_matrix_from_translation(traslmethod=0, axisz=-0)
 MeshSet.compute_matrix_from_rotation(rotaxis=0, rotcenter=1, angle=-3.5)    # Arc tilt.
 MeshSet.compute_matrix_from_rotation(rotaxis=1, rotcenter=1, angle=footangle_3)  # Arc.
 
 MeshSet.set_current_mesh(4)
+MeshSet.set_mesh_name(newname="Mesh_4")
 MeshSet.compute_matrix_from_translation(traslmethod=0, axisz=-0)            # Base plane.
 # MeshSet.compute_matrix_from_rotation(rotaxis=0, rotcenter=1, angle=-5)
 
 MeshSet.set_current_mesh(5)
+MeshSet.set_mesh_name(newname="Mesh_5")
 MeshSet.compute_matrix_from_translation(traslmethod=0, axisz=-x10)          # Heel.
 MeshSet.compute_matrix_from_rotation(rotaxis=0, rotcenter=1, angle=7.5)
 

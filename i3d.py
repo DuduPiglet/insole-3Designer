@@ -26,9 +26,9 @@ if (inputfile_list == None):
 #foot_choise = 'r'#upr.prompt_foot_choise(lang=args['l'])
 input_file = upr.prompt_inputfile(inputfile_list, lang=args['l'])
 footlength = upr.prompt_footlength(lang=args['l'])
-footlength_ml = upr.prompt_footlength_ml(lang=args['l'])
+# footlength_ml = upr.prompt_footlength_ml(lang=args['l'])
 foot_choise = upr.prompt_foot_choise(lang=args['l'])
-scale_factor = footlength / footlength_ml
+# scale_factor = footlength / footlength_ml
 if (flg.APPEND_DATETIME == 1):
     default_output_file = "%s_%s.stl" % (''.join(input_file.split('.')[0:-1]), datetime.now().strftime("%Y%m%d_%H%M%S"))
 else:
@@ -62,6 +62,15 @@ polyscope.init()
 def LoadMesh():                                             # Load Mesh and decrease number of faces.
   MeshSet.load_new_mesh("%s/%s" % (args['i'], input_file))
   MeshSet.meshing_decimation_clustering(threshold=Percentage(0.75)) # This value is used to decimate the mesh and speed up the processing. The higher the more it decimates.
+  
+  # Auto-detect scale
+  m = MeshSet.current_mesh()
+  bbox = m.bounding_box()
+  # Assume the largest dimension is the length
+  current_length = max(bbox.dim_x(), bbox.dim_y(), bbox.dim_z())
+  scale_factor = footlength / current_length
+  print(f"Auto-detected length: {current_length:.2f}, Target: {footlength}, Scale Factor: {scale_factor:.4f}")
+
   MeshSet.compute_matrix_from_scaling_or_normalization(
       scalecenter=1,        # Set the center of the piece is the center of the scaling? [0:origin, 1:barycenter, 2:custom]
       uniformflag=1,        # Use the same scale por all axis (the X axis value is used).
@@ -87,9 +96,47 @@ def RotateToFitOnXYPlane():                                 # Rotate the Scan of
     MeshSet.set_selection_all()                             # No idea how it works, but it's alway negative z up for all scans I had, so...
     # MeshSet.compute_selection_from_mesh_border()
     MeshSet.compute_matrix_by_principal_axis
-    MeshSet.compute_matrix_by_fitting_to_plane(targetplane="XY plane", toorigin=True)
-    MeshSet.compute_matrix_by_principal_axis
-    MeshSet.compute_matrix_by_fitting_to_plane(targetplane="XY plane", toorigin=True)
+    MeshSet.compute_matrix_by_fitting_to_plane(targetplane='XY plane', rotaxis='Z axis', toorigin=True)
+    # MeshSet.compute_matrix_by_principal_axis
+    # MeshSet.compute_matrix_by_fitting_to_plane(targetplane="XY plane", toorigin=True)
+    
+    # Auto-orientation check
+    m = MeshSet.current_mesh()
+    normals = m.vertex_normal_matrix()
+    if normals is not None:
+        # Calculate average Z component of normals
+        # We can use a simple sum/len if numpy is not guaranteed, but pymeshlab usually implies numpy
+        import numpy as np
+        avg_normal_z = np.mean(normals[:, 2])
+        print(f"Average Normal Z: {avg_normal_z}")
+        
+        # If average normal Z is positive, it means the foot is likely upside down (sole facing +Z)
+        # We expect negative Z up, so sole should face -Z (or normals point -Z? Wait.)
+        # In diagnostic: Left Foot (Correct) -> -1666 (Negative)
+        # In diagnostic: Right Foot (Incorrect) -> 0.66 (Positive)
+        # So if Positive, FLIP.
+        
+        if avg_normal_z > 0:
+            print("Detected upside down orientation. Flipping mesh...")
+            MeshSet.compute_matrix_from_rotation(rotaxis=0, rotcenter=1, angle=180) # Rotate 180 around X axis
+            # Re-align to plane just in case
+            MeshSet.compute_matrix_by_fitting_to_plane(targetplane='XY plane', rotaxis='Z axis', toorigin=True)
+            
+    # Auto-orientation check (Y-axis / Toes direction)
+    # Heuristic: Center of Mass should be in +Y half (toes point +Y)
+    m = MeshSet.current_mesh()
+    # We need vertex coordinates. PyMeshLab exposes them via vertex_matrix()
+    vertices = m.vertex_matrix()
+    if vertices is not None:
+        # Calculate Center of Mass (average of vertex coordinates)
+        # We assume the mesh is centered at origin (0,0,0) due to previous operations
+        avg_y = np.mean(vertices[:, 1])
+        print(f"Center of Mass Y: {avg_y}")
+        
+        if avg_y > 0:
+            print("Detected backward orientation (toes -Y). Rotating 180 degrees around Z...")
+            MeshSet.compute_matrix_from_rotation(rotaxis=2, rotcenter=1, angle=180) # Rotate 180 around Z axis
+            
     return
 
 def CreatePlaneOnBorder():                                  # Creates a plane that covers the whole scan. You will see why.

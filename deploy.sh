@@ -1,4 +1,14 @@
-# after deprecation of some arguments in 15.1.0
+#!/bin/bash
+
 venv_name="venv"
-echo $venv_name
-virtualenv ".$venv_name" && source ".$venv_name/bin/activate" && pip install -r requirements.txt
+
+# Crear el entorno si no existe
+if [ ! -d ".$venv_name" ]; then
+    python3 -m venv ".$venv_name"
+fi
+
+# Activar el entorno virtual
+source ".$venv_name/bin/activate"
+
+# Instalar dependencias
+pip install -r requirements.txt

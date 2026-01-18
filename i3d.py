@@ -5,6 +5,7 @@ import src.file_hdl as fhdl
 from datetime import datetime
 import conf.flags as flg
 import json
+import os
 
 # Disclaimer: I had no Idea what I was doing. I just coded this script to not have to do it all by hand in Meshlab
 # Don't expect anything fancy really, but it "works" somehow. If it makes sense in a anatomical way is up to the debate!
@@ -53,7 +54,7 @@ x10 = (10 / 270) * footlength # Only x10 is being used.
 # End of calculations.
 
 MeshSet = pymeshlab.MeshSet()     # Class containing all meshes.
-Percentage = pymeshlab.Percentage # Something for percentage values at some point (no idea).
+Percentage = pymeshlab.PercentageValue # Something for percentage values at some point (no idea).
 polyscope.set_up_dir('neg_z_up')  # Set "upwards" direction in polyscope.
 polyscope.set_front_dir('x_front')
 polyscope.init()
@@ -145,7 +146,9 @@ def CreatePlaneOnBorder():                                  # Creates a plane th
     return
 
 def ColorizeMesh0():                                        # Colorizes the mesh according to the euclidean distance to the plane.
-    MeshSet.compute_scalar_by_distance_from_point_cloud_per_vertex(coloredmesh=0, vertexmesh=1)
+    MeshSet.compute_scalar_by_distance_from_another_mesh_per_vertex(measuremesh=0, refmesh=1)
+    MeshSet.set_current_mesh(0)
+    MeshSet.compute_color_from_scalar_per_vertex()
     return
 
 def SelectOverhang():                                       # Selects the unnecesary part of the scan to delete it afterwards.
@@ -162,6 +165,7 @@ def MoveSelectedFacesToAnotherLayer():                      # For editing certai
     return
 
 def SaveCurrentMesh():                                      # For creating a printable file format.
+    os.makedirs(args['o'], exist_ok=True)
     MeshSet.save_current_mesh(file_name="%s/%s" % (args['o'], output_file), save_textures=True)
     return
 # End of declaration of the functions (not all are being used I guess).

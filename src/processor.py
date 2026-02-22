@@ -4,13 +4,14 @@ import os
 import json
 import numpy as np
 
-def process_insole(input_path, output_dir, foot_length, side):
+def process_insole(input_path, output_dir, foot_length, side, extra_thickness=0.0):
     """
     Process the insole mesh headlessly.
     input_path: Path to the input mesh (obj/ply)
     output_dir: Directory to save the output
     foot_length: Target foot length in mm
     side: 'l' or 'r'
+    extra_thickness: Extra thickness in mm to add to the base insole parameters
     """
     
     # Setup paths
@@ -271,16 +272,38 @@ def process_insole(input_path, output_dir, foot_length, side):
         MeshSet.meshing_remove_selected_vertices_and_faces()
         
     # Smoothing & Resampling
+    
+    # Calculate offset logic based on PyMeshLab's bounding box diagonal percentage.
+    # The mesh was previously scaled so max(dim_x, dim_y, dim_z) = foot_length.
+    # We need to find how many percentage points correspond to 1mm.
+    # First, let's get the bounding box diagonal.
+    m_bbox = MeshSet.current_mesh().bounding_box()
+    diag = m_bbox.diagonal()
+    
+    # By default in PyMeshLab, if an offset is 50%, it refers to the surface itself (isovalue 0 equivalent in some filters, but here it's 50%).
+    # Actually, generate_resampled_uniform_mesh with offset=50 means 0 offset. 
+    # >50 is inflating. <50 is deflating.
+    # 1% of the diagonal = diag * 0.01 in absolute mm. 
+    # We want to add `extra_thickness` mm.
+    # To convert `extra_thickness` (in mm) to percentage of diagonal points:
+    # percentage_shift = (extra_thickness / diag) * 100
+    
+    percentage_shift = (extra_thickness / diag) * 100
+    
+    # Base offsets are 51.75 and 51.25.
+    offset1 = 51.75 + percentage_shift
+    offset2 = 51.25 + percentage_shift
+
     # sel1 (id 2) -> resampled low offset
     MeshSet.set_current_mesh(sel1_idx)
     MeshSet.apply_coord_taubin_smoothing(lambda_=1, stepsmoothnum=50)
-    MeshSet.generate_resampled_uniform_mesh(cellsize=Percentage(0.5), offset=Percentage(51.75), absdist=True)
+    MeshSet.generate_resampled_uniform_mesh(cellsize=Percentage(0.5), offset=Percentage(offset1), absdist=True)
     resamp1_idx = MeshSet.current_mesh_id()
     
     # sel2 (id 3) -> resampled high offset
     MeshSet.set_current_mesh(sel2_idx)
     MeshSet.apply_coord_taubin_smoothing(lambda_=1, stepsmoothnum=50)
-    MeshSet.generate_resampled_uniform_mesh(cellsize=Percentage(0.25), offset=Percentage(51.25), absdist=True)
+    MeshSet.generate_resampled_uniform_mesh(cellsize=Percentage(0.25), offset=Percentage(offset2), absdist=True)
     resamp2_idx = MeshSet.current_mesh_id()
     
     # Final Merge
@@ -328,7 +351,9 @@ def process_insole(input_path, output_dir, foot_length, side):
         import trimesh
         # Load the saved STL
         mesh = trimesh.load(output_path)
-        # Export as GLB
+        # Export as GLB with a default material color (darker blue-grey) to make shape visible
+        if hasattr(mesh.visual, 'face_colors'):
+            mesh.visual.face_colors = [90, 130, 170, 255]
         mesh.export(glb_path)
     except Exception as e:
         print(f"Warning: GLB export failed: {e}")
@@ -347,8 +372,12 @@ if __name__ == "__main__":
     foot_length = float(sys.argv[3])
     side = sys.argv[4]
     
+    extra_thickness = 0.0
+    if len(sys.argv) >= 6:
+        extra_thickness = float(sys.argv[5])
+    
     try:
-        out = process_insole(input_path, output_dir, foot_length, side)
+        out = process_insole(input_path, output_dir, foot_length, side, extra_thickness)
         print(f"OUTPUT_PATH:{out}")
     except Exception as e:
         import traceback

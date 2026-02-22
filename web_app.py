@@ -25,7 +25,8 @@ async def read_index():
 async def process_file(
     file: UploadFile,
     foot_length: float = Form(...),
-    side: str = Form(...)
+    side: str = Form(...),
+    extra_thickness: float = Form(0.0)
 ):
     # Save input file
     file_id = str(uuid.uuid4())
@@ -39,7 +40,7 @@ async def process_file(
     try:
         cmd = [
             "python3", "-m", "src.processor",
-            input_path, OUTPUT_DIR, str(foot_length), side
+            input_path, OUTPUT_DIR, str(foot_length), side, str(extra_thickness)
         ]
         import subprocess
         result = subprocess.run(cmd, capture_output=True, text=True)
@@ -75,7 +76,9 @@ async def process_file(
              # Convert using trimesh
              subprocess.run([
                  "python3", "-c", 
-                 f"import trimesh; m=trimesh.load('{input_path}'); m.export('{input_glb_path}')"
+                 f"import trimesh\nm=trimesh.load('{input_path}', force='mesh')\n"
+                 f"if hasattr(m, 'visual'):\n    m.visual.face_colors = [180, 180, 180, 255]\n"
+                 f"m.export('{input_glb_path}')"
              ])
         
         return {

@@ -57,6 +57,7 @@
             margin: 0;
             background: linear-gradient(90deg, #fff, #a5a5a5);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -270,6 +271,11 @@
                     </select>
                 </div>
 
+                <div class="form-group">
+                    <label>Extra Thickness (mm)</label>
+                    <input type="number" name="extra_thickness" value="0.0" min="-10.0" max="20.0" step="0.5" required>
+                </div>
+
                 <button type="submit" class="btn" id="generateBtn">Generate Insole</button>
                 <a href="#" class="btn download-btn" id="downloadLink" download>Download STL</a>
             </form>
@@ -287,12 +293,12 @@
                 <div style="font-size: 0.8rem; color: #888; margin-top: 5px;">This may take a minute</div>
             </div>
 
-            <model-viewer id="mv-input" src="" camera-controls auto-rotate shadow-intensity="1" style="display: block;"
-                alt="Input Model">
+            <model-viewer id="mv-input" src="" camera-controls auto-rotate shadow-intensity="3" shadow-softness="0.5"
+                exposure="0.7" style="display: block;" environment-image="neutral" alt="Input Model">
             </model-viewer>
 
-            <model-viewer id="mv-output" src="" camera-controls auto-rotate shadow-intensity="1" style="display: none;"
-                alt="Output Model">
+            <model-viewer id="mv-output" src="" camera-controls auto-rotate shadow-intensity="3" shadow-softness="0.5"
+                exposure="0.7" style="display: none;" environment-image="neutral" alt="Output Model">
             </model-viewer>
         </div>
     </div>

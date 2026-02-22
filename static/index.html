@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insole 3Designer</title>
+    <!-- Model Viewer -->
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #0f0f13;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --primary: #4f46e5;
+            --text: #ffffff;
+            --text-secondary: #a1a1aa;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Sidebar Control Panel */
+        .controls {
+            width: 350px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid var(--glass-border);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            z-index: 10;
+        }
+
+        h1 {
+            font-weight: 600;
+            font-size: 1.5rem;
+            margin: 0;
+            background: linear-gradient(90deg, #fff, #a5a5a5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        input[type="number"],
+        select {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            padding: 0.75rem;
+            border-radius: 8px;
+            color: white;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="number"]:focus,
+        select:focus {
+            border-color: var(--primary);
+        }
+
+        /* File Upload */
+        .file-drop-area {
+            border: 2px dashed var(--glass-border);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .file-drop-area:hover {
+            border-color: var(--primary);
+            background: rgba(79, 70, 229, 0.1);
+        }
+
+        .fake-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            display: inline-block;
+        }
+
+        .file-msg {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .file-input {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* Button */
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
+            background: #333;
+            cursor: not-allowed;
+        }
+
+        /* Viewer Area */
+        .viewer-area {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #1a1a20 0%, #000 100%);
+        }
+
+        model-viewer {
+            width: 100%;
+            height: 100%;
+            --poster-color: transparent;
+        }
+
+        .tabs {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            padding: 5px;
+            border-radius: 20px;
+            display: flex;
+            gap: 5px;
+            z-index: 20;
+            border: 1px solid var(--glass-border);
+        }
+
+        .tab {
+            padding: 8px 16px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background 0.2s;
+            color: var(--text-secondary);
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 10px rgba(79, 70, 229, 0.3);
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            display: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--glass-border);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .download-btn {
+            display: none;
+            background: #10b981;
+            text-align: center;
+            text-decoration: none;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="controls">
+            <h1>Insole 3Designer</h1>
+
+            <form id="processForm">
+                <div class="file-drop-area">
+                    <span class="file-msg">Drag & Drop Scan here</span>
+                    <span class="fake-btn">Choose File</span>
+                    <input class="file-input" type="file" id="fileInput" name="file" accept=".obj,.ply,.stl" required>
+                </div>
+                <div id="fileName" style="font-size: 0.8rem; color: var(--primary); text-align: center; height: 1rem;">
+                </div>
+
+                <div class="form-group">
+                    <label>Foot Length (mm)</label>
+                    <input type="number" name="foot_length" value="240" min="100" max="400" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Side</label>
+                    <select name="side">
+                        <option value="l">Left Foot</option>
+                        <option value="r">Right Foot</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn" id="generateBtn">Generate Insole</button>
+                <a href="#" class="btn download-btn" id="downloadLink" download>Download STL</a>
+            </form>
+        </div>
+
+        <div class="viewer-area">
+            <div class="tabs">
+                <div class="tab active" onclick="switchView('input')">Input Scan</div>
+                <div class="tab" onclick="switchView('output')">Result</div>
+            </div>
+
+            <div class="loading-overlay" id="loader">
+                <div class="spinner"></div>
+                <div>Processing Mesh...</div>
+                <div style="font-size: 0.8rem; color: #888; margin-top: 5px;">This may take a minute</div>
+            </div>
+
+            <model-viewer id="mv-input" src="" camera-controls auto-rotate shadow-intensity="1" style="display: block;"
+                alt="Input Model">
+            </model-viewer>
+
+            <model-viewer id="mv-output" src="" camera-controls auto-rotate shadow-intensity="1" style="display: none;"
+                alt="Output Model">
+            </model-viewer>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        const form = document.getElementById('processForm');
+        const loader = document.getElementById('loader');
+        const downloadLink = document.getElementById('downloadLink');
+        const mvInput = document.getElementById('mv-input');
+        const mvOutput = document.getElementById('mv-output');
+
+        let inputUrl = null;
+        let outputUrl = null;
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                fileName.textContent = file.name;
+
+                // Preview
+                inputUrl = URL.createObjectURL(file);
+                mvInput.src = inputUrl;
+                switchView('input');
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            loader.style.display = 'flex';
+            downloadLink.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/process', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    outputUrl = data.glb_url; // Use GLB for display
+                    inputUrl = data.input_glb_url; // Use Converted GLB for display
+
+                    mvOutput.src = outputUrl;
+                    mvInput.src = inputUrl;
+
+                    downloadLink.href = data.url; // Download STL
+                    downloadLink.style.display = 'block';
+                    downloadLink.textContent = `Download ${data.url.split('/').pop()}`;
+
+                    // Switch to result view
+                    switchView('output');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (err) {
+                alert('Request failed');
+                console.error(err);
+            } finally {
+                loader.style.display = 'none';
+            }
+        });
+
+        window.switchView = (view) => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            if (view === 'input') {
+                document.querySelector('.tab:nth-child(1)').classList.add('active');
+                mvInput.style.display = 'block';
+                mvOutput.style.display = 'none';
+            } else {
+                document.querySelector('.tab:nth-child(2)').classList.add('active');
+                mvInput.style.display = 'none';
+                mvOutput.style.display = 'block';
+            }
+        }
+
+        // Initial switch
+        switchView('input');
+    </script>
+
+</body>
+
+</html>

@@ -1,3 +1,6 @@
 numpy==1.26.4
 polyscope==2.3.0
 pymeshlab==2023.12.post3
+trimesh
+scipy
+networkx
